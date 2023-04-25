@@ -52,6 +52,22 @@ func GetCPURates(ctx context.Context) ([]float64, error) {
 	return cpuRates, nil
 }
 
+// ServeCPURates serves the cpu rates to the cpu channel
+func ServeCPURates(ctx context.Context, dataChannel chan interface{}) error {
+	cpuRates, err := cpu.PercentWithContext(ctx, time.Second, true)
+	if err != nil {
+		return err
+	}
+	data := cpuRates
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case dataChannel <- data:
+		return nil
+	}
+}
+
 // ServeMemRates serves stats about the memory to the data channel.
 func ServeMemRates(ctx context.Context, dataChannel chan interface{}) error {
 	memory, err := mem.VirtualMemory()

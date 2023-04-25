@@ -2,6 +2,7 @@ package general
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -18,7 +19,7 @@ type AggregateMetrics struct {
 type serveFunc func(context.Context, chan AggregateMetrics) error
 
 // GlobalStats gets stats about the mem and CPUs and prints it.
-func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, refreshRate uint64) error {
+func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, _ uint64) error {
 	serveFuncs := []serveFunc{
 		ServeCPURates,
 		ServeMemRates,
@@ -28,6 +29,7 @@ func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, refresh
 	}
 
 	return func(ctx context.Context) error {
+		defer close(dataChannel)
 		var wg sync.WaitGroup
 		errCh := make(chan error, len(serveFuncs))
 
@@ -45,7 +47,7 @@ func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, refresh
 				return err
 			}
 		}
-		
+		fmt.Println("returned")
 		return nil
 	}(ctx)
 }

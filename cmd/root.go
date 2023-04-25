@@ -6,6 +6,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/GRTheory/my-grofer/pkg/metrics/factory"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,15 @@ var rootCmd = &cobra.Command{
 	Long: `grofer is a system and resource monitor written in golang.
 
 While using a TUI based command. press ? to get information about key bindings (if any) for that command.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		refreshRate, err := cmd.Flags().GetUint64("refresh")
+		if err != nil {
+			return err
+		}
+		err = factory.NewSystemWideMetrics(false, refreshRate).Serve()
+		if err != nil {
+			return err
+		}
 		return nil
 	},
 	// Uncomment the following line if your bare application

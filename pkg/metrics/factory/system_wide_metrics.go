@@ -13,6 +13,13 @@ type systemWideMetrics struct {
 	refreshRate uint64
 }
 
+func NewSystemWideMetrics(cpuInfo bool, refreshRate uint64) *systemWideMetrics {
+	return &systemWideMetrics{
+		cpuInfo: cpuInfo,
+		refreshRate: refreshRate,
+	}
+}
+
 func (swm *systemWideMetrics) Serve(opts ...Option) error {
 	// apply command spcific options.
 	for _, opt := range opts {

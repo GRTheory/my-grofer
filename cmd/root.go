@@ -1,6 +1,5 @@
 /*
 Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -10,18 +9,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
+const (
+	defaultOverallRefreshRate = 1000
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "my-grofer",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Use:   "grofer",
+	Short: "grofer is a system and resource monitor written in golang",
+	Long: `grofer is a system and resource monitor written in golang.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+While using a TUI based command. press ? to get information about key bindings (if any) for that command.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		return nil
+	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -46,6 +48,7 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	rootCmd.Flags().Uint64P("refresh", "r", defaultOverallRefreshRate,
+		"Overall stats UI refreshes rate in milliseconds greater than 1000")
 }
-
-

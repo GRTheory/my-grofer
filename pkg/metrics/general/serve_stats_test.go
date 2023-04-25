@@ -6,7 +6,7 @@ import (
 )
 
 func TestServeStatsOfDisk(t *testing.T) {
-	dataChannel := make(chan interface{})
+	dataChannel := make(chan AggregateMetrics)
 	go func() {
 		err := ServeDiskRates(context.Background(), dataChannel)
 		if err != nil {
@@ -18,7 +18,7 @@ func TestServeStatsOfDisk(t *testing.T) {
 }
 
 func TestServeStatsOfMemRates(t *testing.T) {
-	dataChannel := make(chan interface{})
+	dataChannel := make(chan AggregateMetrics)
 	go func() {
 		err := ServeMemRates(context.Background(), dataChannel)
 		if err != nil {

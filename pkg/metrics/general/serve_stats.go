@@ -20,7 +20,7 @@ func roundOff(num uint64) float64 {
 }
 
 // ServeInfo provides information about the system such as OS info, uptime, boot time, etc.
-func ServeInfo(ctx context.Context, dataChannel chan interface{}) error {
+func ServeInfo(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	info, err := host.InfoWithContext(ctx)
 	if err != nil {
 		return err
@@ -33,7 +33,10 @@ func ServeInfo(ctx context.Context, dataChannel chan interface{}) error {
 		{"Kernel/Arch", fmt.Sprintf("%s/%s", info.KernelVersion, info.KernelArch)},
 	}
 
-	data := hostInfo
+	data := AggregateMetrics{
+		FieldSet: "INFO",
+		HostInfo: hostInfo,
+	}
 
 	select {
 	case <-ctx.Done():
@@ -53,12 +56,15 @@ func GetCPURates(ctx context.Context) ([]float64, error) {
 }
 
 // ServeCPURates serves the cpu rates to the cpu channel
-func ServeCPURates(ctx context.Context, dataChannel chan interface{}) error {
+func ServeCPURates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	cpuRates, err := cpu.PercentWithContext(ctx, time.Second, true)
 	if err != nil {
 		return err
 	}
-	data := cpuRates
+	data := AggregateMetrics{
+		FieldSet: "CPU",
+		CPUStats: cpuRates,
+	}
 
 	select {
 	case <-ctx.Done():
@@ -69,7 +75,7 @@ func ServeCPURates(ctx context.Context, dataChannel chan interface{}) error {
 }
 
 // ServeMemRates serves stats about the memory to the data channel.
-func ServeMemRates(ctx context.Context, dataChannel chan interface{}) error {
+func ServeMemRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
 		return err
@@ -77,8 +83,10 @@ func ServeMemRates(ctx context.Context, dataChannel chan interface{}) error {
 
 	memRates := []float64{roundOff(memory.Total), roundOff(memory.Used), roundOff(memory.Available), roundOff(memory.Free), roundOff(memory.Cached)}
 
-	data := memRates
-
+	data := AggregateMetrics{
+		FieldSet: "MEM",
+		MemStats: memRates,
+	}
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -88,7 +96,7 @@ func ServeMemRates(ctx context.Context, dataChannel chan interface{}) error {
 }
 
 // ServeDiskRates serves the disk rate data to the data channel.
-func ServeDiskRates(ctx context.Context, dataChannel chan interface{}) error {
+func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	var partitions []disk.PartitionStat
 	var err error
 	// in this situation, we choose to use separased disk information.
@@ -116,7 +124,10 @@ func ServeDiskRates(ctx context.Context, dataChannel chan interface{}) error {
 		}
 	}
 
-	data := rows
+	data := AggregateMetrics{
+		FieldSet:  "DISK",
+		DiskStats: rows,
+	}
 
 	select {
 	case <-ctx.Done():
@@ -127,7 +138,7 @@ func ServeDiskRates(ctx context.Context, dataChannel chan interface{}) error {
 }
 
 // ServeNetRates serves info about the network to the data channel.
-func ServeNetRates(ctx context.Context, dataChannel chan interface{}) error {
+func ServeNetRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	netStats, err := net.IOCountersWithContext(ctx, false)
 	if err != nil {
 		return err
@@ -138,7 +149,10 @@ func ServeNetRates(ctx context.Context, dataChannel chan interface{}) error {
 		IO[IOStat.Name] = nic
 	}
 
-	data := IO
+	data := AggregateMetrics{
+		FieldSet: "NET",
+		NetStats: IO,
+	}
 
 	select {
 	case <-ctx.Done():

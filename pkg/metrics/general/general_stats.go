@@ -8,11 +8,11 @@ import (
 
 // AggregateMetrics represents global metrics to be consumed.
 type AggregateMetrics struct {
-	NetStats  map[string][]float64
+	NetStats  []NetMonitor
 	FieldSet  string
 	CPUStats  []float64
 	MemStats  []float64
-	DiskStats [][]string
+	DiskStats []DiskMonitor
 	HostInfo  [][]string
 }
 
@@ -21,11 +21,11 @@ type serveFunc func(context.Context, chan AggregateMetrics) error
 // GlobalStats gets stats about the mem and CPUs and prints it.
 func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, _ uint64) error {
 	serveFuncs := []serveFunc{
-		ServeCPURates,
-		ServeMemRates,
+		// ServeCPURates,
+		// ServeMemRates,
 		ServeDiskRates,
 		ServeNetRates,
-		ServeInfo,
+		// ServeInfo,
 	}
 
 	return func(ctx context.Context) error {

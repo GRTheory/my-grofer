@@ -2,6 +2,7 @@ package general
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -13,6 +14,10 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 )
+
+type MonitorInterface interface {
+	String() string
+}
 
 func roundOff(num uint64) float64 {
 	x := float64(num) / (1024 * 1024 * 1024)
@@ -95,6 +100,15 @@ func ServeMemRates(ctx context.Context, dataChannel chan AggregateMetrics) error
 	}
 }
 
+type DiskMonitor struct {
+	MountPath   string
+	Total       float64
+	UsedPercent float64
+	Used        float64
+	Free        float64
+	FsType      string
+}
+
 // ServeDiskRates serves the disk rate data to the data channel.
 func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	var partitions []disk.PartitionStat
@@ -104,7 +118,8 @@ func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) erro
 	if err != nil {
 		return err
 	}
-	rows := [][]string{{"Mount", "Total", "Used %", "Used", "Free", "FS Type"}}
+	// rows := [][]string{{"Mount", "Total", "Used %", "Used", "Free", "FS Type"}}
+	rows := make([]DiskMonitor, 0, len(partitions))
 	for _, value := range partitions {
 		usageVals, _ := disk.UsageWithContext(ctx, value.Mountpoint)
 
@@ -113,16 +128,24 @@ func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) erro
 		} else if strings.HasPrefix(value.Mountpoint, "/var/lib/docker") {
 			continue
 		} else {
-			path := usageVals.Path
-			total := fmt.Sprintf("%.2f G", float64(usageVals.Total)/(1024*1024*1024))
-			used := fmt.Sprintf("%.2f G", float64(usageVals.Used)/(1024*1024*1024))
-			usedPercent := fmt.Sprintf("%.2f %s", usageVals.UsedPercent, "%")
-			free := fmt.Sprintf("%.2f G", float64(usageVals.Free)/(1024*1024*1024))
-			fs := usageVals.Fstype
-			row := []string{path, total, usedPercent, used, free, fs}
-			rows = append(rows, row)
+			tempDiskMonitor := DiskMonitor{
+				MountPath:   usageVals.Path,
+				Total:       float64(usageVals.Total)/(1024*1024*1024),
+				UsedPercent: usageVals.UsedPercent,
+				Used:        float64(usageVals.Used)/(1024*1024*1024),
+				Free:        float64(usageVals.Free)/(1024*1024*1024),
+				FsType:      usageVals.Fstype,
+			}
+			rows = append(rows, tempDiskMonitor)
 		}
 	}
+
+	result, err := json.Marshal(rows)
+	if err != nil {
+		return err
+	}
+	
+	fmt.Println(string(result))
 
 	data := AggregateMetrics{
 		FieldSet:  "DISK",
@@ -137,16 +160,26 @@ func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) erro
 	}
 }
 
+type NetMonitor struct {
+	Name          string
+	SendBytes     float64
+	ReceivedBytes float64
+}
+
 // ServeNetRates serves info about the network to the data channel.
 func ServeNetRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	netStats, err := net.IOCountersWithContext(ctx, false)
 	if err != nil {
 		return err
 	}
-	IO := make(map[string][]float64)
+	IO := make([]NetMonitor, 0, len(netStats))
 	for _, IOStat := range netStats {
-		nic := []float64{float64(IOStat.BytesSent), float64(IOStat.BytesRecv)}
-		IO[IOStat.Name] = nic
+		tempNetMonitor := NetMonitor{
+			Name:          IOStat.Name,
+			SendBytes:     float64(IOStat.BytesSent),
+			ReceivedBytes: math.Float64frombits(IOStat.BytesRecv),
+		}
+		IO = append(IO, tempNetMonitor)
 	}
 
 	data := AggregateMetrics{

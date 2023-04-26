@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/GRTheory/my-grofer/pkg/metrics/general"
@@ -15,7 +16,7 @@ type systemWideMetrics struct {
 
 func NewSystemWideMetrics(cpuInfo bool, refreshRate uint64) *systemWideMetrics {
 	return &systemWideMetrics{
-		cpuInfo: cpuInfo,
+		cpuInfo:     cpuInfo,
 		refreshRate: refreshRate,
 	}
 }
@@ -40,7 +41,24 @@ func (swm *systemWideMetrics) serveGenericMetrics() error {
 
 	eg.Go(func() error {
 		for metric := range metricBus {
-			fmt.Println(metric)
+			var result []byte
+			var err error
+			switch metric.FieldSet {
+			case "NET":
+				result, err = json.Marshal(metric.NetStats)
+			case "DISK":
+				result, err = json.Marshal(metric.DiskStats)
+			case "INFO":
+				result, err = json.Marshal(metric.HostInfo)
+			case "CPU":
+				result, err = json.Marshal(metric.CPUStats)
+			case "MEM":
+				result, err = json.Marshal(metric.MemStats)
+			}
+			if err != nil {
+				return err
+			}
+			fmt.Println(metric.FieldSet, string(result))
 		}
 		return nil
 	})

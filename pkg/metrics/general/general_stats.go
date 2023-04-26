@@ -2,7 +2,6 @@ package general
 
 import (
 	"context"
-	"fmt"
 	"sync"
 )
 
@@ -10,10 +9,10 @@ import (
 type AggregateMetrics struct {
 	NetStats  []NetMonitor
 	FieldSet  string
-	CPUStats  []float64
-	MemStats  []float64
+	CPUStats  []CPUMonitor
+	MemStats  MemMonitor
 	DiskStats []DiskMonitor
-	HostInfo  [][]string
+	HostInfo  InfoMonitor
 }
 
 type serveFunc func(context.Context, chan AggregateMetrics) error
@@ -21,11 +20,11 @@ type serveFunc func(context.Context, chan AggregateMetrics) error
 // GlobalStats gets stats about the mem and CPUs and prints it.
 func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, _ uint64) error {
 	serveFuncs := []serveFunc{
-		// ServeCPURates,
-		// ServeMemRates,
+		ServeCPURates,
+		ServeMemRates,
 		ServeDiskRates,
 		ServeNetRates,
-		// ServeInfo,
+		ServeInfo,
 	}
 
 	return func(ctx context.Context) error {
@@ -47,7 +46,6 @@ func GlobalStats(ctx context.Context, dataChannel chan AggregateMetrics, _ uint6
 				return err
 			}
 		}
-		fmt.Println("returned")
 		return nil
 	}(ctx)
 }

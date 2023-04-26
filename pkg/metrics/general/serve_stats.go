@@ -130,10 +130,10 @@ func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) erro
 		} else {
 			tempDiskMonitor := DiskMonitor{
 				MountPath:   usageVals.Path,
-				Total:       float64(usageVals.Total)/(1024*1024*1024),
+				Total:       float64(usageVals.Total) / (1024 * 1024 * 1024),
 				UsedPercent: usageVals.UsedPercent,
-				Used:        float64(usageVals.Used)/(1024*1024*1024),
-				Free:        float64(usageVals.Free)/(1024*1024*1024),
+				Used:        float64(usageVals.Used) / (1024 * 1024 * 1024),
+				Free:        float64(usageVals.Free) / (1024 * 1024 * 1024),
 				FsType:      usageVals.Fstype,
 			}
 			rows = append(rows, tempDiskMonitor)
@@ -144,7 +144,7 @@ func ServeDiskRates(ctx context.Context, dataChannel chan AggregateMetrics) erro
 	if err != nil {
 		return err
 	}
-	
+
 	fmt.Println(string(result))
 
 	data := AggregateMetrics{
@@ -166,27 +166,29 @@ type NetMonitor struct {
 	ReceivedBytes float64
 }
 
-// ServeNetRates serves info about the network to the data channel.
+// ServeNetRates gathers network related metrics and sends them to the dataChannel. 
+// It takes the context and  the dataChannel as arguments and returns an error if 
+// one encountered. The function gathers information such as bytes sent and received 
+// and stores them in a NetMonitor struct which is then sent to the dataChannel. 
+// If a context is done, an error is returned.
 func ServeNetRates(ctx context.Context, dataChannel chan AggregateMetrics) error {
 	netStats, err := net.IOCountersWithContext(ctx, false)
 	if err != nil {
 		return err
 	}
-	IO := make([]NetMonitor, 0, len(netStats))
-	for _, IOStat := range netStats {
+	netMonitors := make([]NetMonitor, 0, len(netStats))
+	for _, ioStat := range netStats {
 		tempNetMonitor := NetMonitor{
-			Name:          IOStat.Name,
-			SendBytes:     float64(IOStat.BytesSent),
-			ReceivedBytes: math.Float64frombits(IOStat.BytesRecv),
+			Name:          ioStat.Name,
+			SendBytes:     float64(ioStat.BytesSent),
+			ReceivedBytes: float64(ioStat.BytesRecv),
 		}
-		IO = append(IO, tempNetMonitor)
+		netMonitors = append(netMonitors, tempNetMonitor)
 	}
-
 	data := AggregateMetrics{
 		FieldSet: "NET",
-		NetStats: IO,
+		NetStats: netMonitors,
 	}
-
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
